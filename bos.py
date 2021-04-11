@@ -93,19 +93,26 @@ sizeKelly = 100 / (100 * w - (1 - w))
 drug_dev_years = 10
 investing_lifetime_years = 80
 iterations = int(investing_lifetime_years / drug_dev_years)
-balance = 10000
+init_balance = 10000
 
 final = []
-final.append([balance, balance, balance, balance])
-# for years (10 year interval)
+size = [sizeKelly, sizeKelly * 2, sizeKelly * 3, sizeKelly * 4]
+labels = ["Kelly", "Double Kelly", "Tripple Kelly", "Suicide"]
+for i in range(len(size)):
+    final.append([init_balance])
+
+print("#" * 10, "START SIMULATION", "#" * 10)
+# for years
 for i in range(iterations):
 
     # for every stock
-    size = [sizeKelly, sizeKelly / 2, sizeKelly * 2, sizeKelly * 3]
-    out = []
     for k, s in enumerate(size):
         temp = []
         num_stocks = math.floor(100 / (s))
+
+        # prev balance
+        bal = final[k][-1]
+        # for ever position
         for j in range(num_stocks):
             price = np.random.uniform(1, 200)
             p = int(np.random.uniform(1, 100))
@@ -117,34 +124,31 @@ for i in range(iterations):
             else:
                 x = 100
             # kelly
-            if type(final[i][k]) is list:
-                bal = final[i][k][-1]
-            else:
-                bal = final[i][k]
             shares = math.floor(s / 100 * bal / price)
             pos = shares * price
             res = pos * x
 
-            if type(final[i][k]) is list:
-                bal = final[i][k][-1]
-            else:
-                bal = final[i][k]
+            temp.append(res)
 
-            balance = bal + res
+        outcome = sum(temp)
+        new_bal = bal + outcome
+        if outcome < init_balance * 0.1:
+            outcome = 0
+        final[k].append(new_bal)
 
-            temp.append(balance)
-            #print("temp: ", temp)
+print("#" * 10, "RESULT", "#" * 10)
+print("Initial investment: ", init_balance)
+for i in range(len(labels)):
+    print("%s end balance: %.2f" % (labels[i], final[i][-1]))
 
-        out.append(temp)
-        #print("out: ", out)
-    final.append(out)
-    #print("final: ", final)
-
-print(len(final))
-print(final)
-exit()
-
-plt.plot(final)
+for i in range(len(final)):
+    plt.plot(final[i], label=labels[i] + "= " +
+             str(round(size[i], 2)) + " % of Account / position")
+# plt.plot(final[0], label="kelly")
+plt.title("Initial Investment of " + str(init_balance) + " SEK")
+plt.xlabel("Iterations (Development cycle = 10years)")
+plt.ylabel("Account Balance (SEK)")
+plt.legend()
 plt.yscale(u'log')
 plt.show()
 exit()
