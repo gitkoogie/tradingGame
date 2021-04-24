@@ -1,7 +1,5 @@
-import matplotlib.pyplot as plt
-import numpy as np
-import math
 import pygame, sys
+import numpy as np
 
 # distribution
 # 10% losing 5x risk
