@@ -13,12 +13,6 @@ def compute_R(risk):
         # pick return uniformly from distribution
         p = int(np.random.uniform(1, 20))
         res = l[p] * risk
-
-        print("#" * 10, "Result", "#" * 10)
-        print("Input: ", risk)
-        print("r: ", l[p])
-        print("Outcome: ", res)
-
         return res 
 
 # draw rectangles and labels where user input
