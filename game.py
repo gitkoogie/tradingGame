@@ -1,5 +1,16 @@
 import pygame, sys
 import numpy as np
+import matplotlib
+
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt 
+import matplotlib.backends.backend_agg as agg
+
+fig = plt.figure(figsize=(6, 4))
+fig.tight_layout()
+ax = fig.add_subplot(111)
+canvas = agg.FigureCanvasAgg(fig)
 
 # distribution
 # 10% losing 5x risk
@@ -28,9 +39,9 @@ def draw_rectangles_and_labels():
     text_done_text = base_font.render(text_done, True, (255, 255, 255))
 
     # draw texts for labels
-    screen.blit(text_surface_risk_text, (300, 378))
-    screen.blit(text_surface_shares_text, (100, 378))
-    screen.blit(text_done_text, (200, 428))
+    screen.blit(text_surface_risk_text, (width * 0, height * 0.65 - text_height))
+    screen.blit(text_surface_shares_text, (width * 0.2, height * 0.65 - text_height))
+    screen.blit(text_done_text, (width * 0.1, height * 0.75 - text_height))
 
 # winning animation
 def winning_animation(balance):
@@ -129,22 +140,41 @@ def losing_animation(balance):
         clock.tick(60)
 
 
+# plot account 
+def plot_balance(data, goal):
+    ax.cla()
+    ax.plot(data, label = "Current Balance")
+    ax.set_title("Account Balance")
+    ax.set_xlabel("Trades")
+    ax.set_ylabel("SEK")
+    ax.set_xlim(0, 20)
+    ax.set_ylim(0, goal*1.5)
+    ax.plot([goal]*21, '--', label = "Goal")
+    ax.legend()
+    canvas.draw()
+    renderer = canvas.get_renderer()
+
+    raw_data = renderer.tostring_rgb()
+    size = canvas.get_width_height()
+
+    return pygame.image.fromstring(raw_data, size, "RGB")
+
 # initialize 
 pygame.init()
 pygame.display.set_caption("Position Sizing")
 programIcon = pygame.image.load("kellyicon.PNG")
 pygame.display.set_icon(programIcon)
-width = 500                                         # window dim
-height = 500                                        # window dim
+width = 1200                                         # window dim
+height = 800                                        # window dim
 screen = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()                         # clock
 text_height = 22
 base_font = pygame.font.Font(None, text_height)     # font
 
 # text boxes for inputing into
-risk_per_trade_box = pygame.Rect(300, 400, 140, 22)
-num_shares_box = pygame.Rect(100, 400, 140, 22)
-done_box = pygame.Rect(200, 450, 140, 22)
+risk_per_trade_box = pygame.Rect(width * 0, height * 0.65, 140, 22)
+num_shares_box = pygame.Rect(width * 0.2, height * 0.65, 140, 22)
+done_box = pygame.Rect(width * 0.1, height * 0.75, 140, 22)
 
 # box color
 color = pygame.Color('lightskyblue3')
@@ -159,8 +189,10 @@ risk = ""
 shares = ""
 done = ""
 user_text = ""
-balance = 1000
-goal = 1250
+balance = [1000]
+goal = 1500
+surf = plot_balance(balance, goal)
+
 iterations = 20
 iterations_left = 20
 price = round(np.random.uniform(1, 500), 2)
@@ -202,10 +234,10 @@ while True:
     
 
     # draw balance and goal
-    text_surface_balance = base_font.render("Your Account Balance: " + str(balance) + " SEK", True, (255, 255, 255))
-    screen.blit(text_surface_balance, (0,0))
+    text_surface_balance = base_font.render("Your Account Balance: " + str(balance[-1]) + " SEK", True, (255, 255, 255))
+    screen.blit(text_surface_balance, (width * 0, 0))
     text_surface_goal = base_font.render("Your Goal: " + str(goal) + " SEK", True ,(255, 255, 255))
-    screen.blit(text_surface_goal, (width/2, 0))
+    screen.blit(text_surface_goal, (width * 0, 22))
 
     # draw price of stock
     if state == "risk" and price_set == False and done != "y":
@@ -213,7 +245,7 @@ while True:
         price_set = True
 
     text_surface_stockprice = base_font.render("Price of Stock: " + str(price) + " SEK", True, (255, 255, 255))
-    screen.blit(text_surface_stockprice, (0, 22))
+    screen.blit(text_surface_stockprice, (width * 0, height * 0.5))
 
     # SET USER INPUT AT CORRECT FIELD 
     if state == "risk":
@@ -231,9 +263,14 @@ while True:
     # if user enters "y" into done field and press enter (i.e moves to next step)
     if done == "y" and state == "risk" and error_funds == False:
         res = compute_R(int(last_risk))
-        balance = balance + res 
+        new_balance = balance[iterations - iterations_left] + res 
+        balance.append(new_balance)
         done = ""
         iterations_left -= 1
+        surf = plot_balance(balance, goal)
+
+    # plot balance
+    screen.blit(surf, (width*0.4, 80))
 
     # input text from user
     if state == "risk":
@@ -260,7 +297,7 @@ while True:
         tot_position = "Your Position: " + str(int(price)*int(shares)) + " SEK"
 
         # if position > account balance
-        if int(price)*int(shares) > balance:
+        if int(price)*int(shares) > balance[iterations - iterations_left]:
 
             screen.blit(base_font.render("Not Sufficient Funds!, Position: " + str(int(price)*int(shares)), True, (255, 255, 255)), (0,330))
             error_funds = True
@@ -268,9 +305,9 @@ while True:
             text_surface_tot_risk = base_font.render(tot_risk, True, (255, 255, 255))
             text_surface_shares = base_font.render(tot_shares, True, (255, 255, 255))
             text_surface_position = base_font.render(tot_position, True, (255, 255, 255))
-            screen.blit(text_surface_shares, (0, 300))
-            screen.blit(text_surface_tot_risk, (0, 330))        
-            screen.blit(text_surface_position, (0, 360))
+            screen.blit(text_surface_shares, (width * 0.5, height * 0.75))
+            screen.blit(text_surface_tot_risk, (width * 0.5, height * 0.75 + text_height))
+            screen.blit(text_surface_position, (width * 0.5, height * 0.75 + text_height * 2))
             error_funds = False
     
     # display iterations 
@@ -279,8 +316,8 @@ while True:
     screen.blit(text_surface_iterations, (0,44))
 
     # if goal is reached
-    if balance >= goal:
-        ret = winning_animation(balance)
+    if balance[iterations - iterations_left] >= goal:
+        ret = winning_animation(balance[-1])
         if ret == 0:    
             pygame.quit()
             sys.exit()
@@ -289,8 +326,8 @@ while True:
             iterations_left = iterations
 
     # if there are no iterations left
-    if iterations_left == 0 or balance < goal / 10:
-        ret = losing_animation(balance)
+    if iterations_left == 0 or balance[iterations - iterations_left] < goal / 10:
+        ret = losing_animation(balance[-1])
         if ret == 0:
             pygame.quit()
             sys.exit()
